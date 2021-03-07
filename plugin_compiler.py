@@ -23,13 +23,20 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QTreeWidgetItem
 # Initialize Qt resources from file resources.py
 from .resources import *
 
 # Import the code for the DockWidget
 from .plugin_compiler_dockwidget import PluginCompilerDockWidget
-import os.path
+
+# Import necessary module
+import glob
+import os
+import subprocess
+import datetime
+from qgis.utils import plugins, pluginDirectory
+from pyplugin_installer import installer as plugin_installer
 
 
 class PluginCompiler:
@@ -68,11 +75,10 @@ class PluginCompiler:
         self.toolbar = self.iface.addToolBar(u'PluginCompiler')
         self.toolbar.setObjectName(u'PluginCompiler')
 
-        #print "** INITIALIZING PluginCompiler"
+        # print "** INITIALIZING PluginCompiler"
 
         self.pluginIsActive = False
         self.dockwidget = None
-
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -89,18 +95,17 @@ class PluginCompiler:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('PluginCompiler', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -163,23 +168,22 @@ class PluginCompiler:
 
         return action
 
-
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ':/plugins/plugin_compiler/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u''),
+            text=self.tr(u'Plugin Compiler'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def onClosePlugin(self):
         """Cleanup necessary items here when plugin dockwidget is closed"""
 
-        #print "** CLOSING PluginCompiler"
+        # print "** CLOSING PluginCompiler"
 
         # disconnects
         self.dockwidget.closingPlugin.disconnect(self.onClosePlugin)
@@ -192,11 +196,10 @@ class PluginCompiler:
 
         self.pluginIsActive = False
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
 
-        #print "** UNLOAD PluginCompiler"
+        # print "** UNLOAD PluginCompiler"
 
         for action in self.actions:
             self.iface.removePluginMenu(
@@ -206,7 +209,7 @@ class PluginCompiler:
         # remove the toolbar
         del self.toolbar
 
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def run(self):
         """Run method that loads and starts the plugin"""
@@ -214,12 +217,12 @@ class PluginCompiler:
         if not self.pluginIsActive:
             self.pluginIsActive = True
 
-            #print "** STARTING PluginCompiler"
+            # print "** STARTING PluginCompiler"
 
             # dockwidget may not exist if:
             #    first run of plugin
             #    removed on close (see self.onClosePlugin method)
-            if self.dockwidget == None:
+            if self.dockwidget is None:
                 # Create the dockwidget (after translation) and keep reference
                 self.dockwidget = PluginCompilerDockWidget()
 
@@ -230,3 +233,149 @@ class PluginCompiler:
             # TODO: fix to allow choice of dock location
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
+
+            self.cmbPluginList = self.dockwidget.cmbPluginList
+            plugins_list = sorted(plugins.keys(), key=str.casefold)
+            for plugin in plugins_list:
+                try:
+                    icon = QIcon(plugin_installer.plugins.all()[plugin]['icon'])
+                except KeyError:
+                    icon = QIcon()
+                self.cmbPluginList.addItem(icon, plugin)
+
+            pushButton = self.dockwidget.pushButton
+            pushButton.clicked.connect(self.get_selected_leaves)
+            self.twGraphFile = self.dockwidget.twGraphFile
+
+            self.cmbPluginList.currentTextChanged.connect(self.current_plugin)
+            self.current_plugin()
+
+    def current_plugin(self):
+        current_plugin = self.cmbPluginList.currentText()
+        startpath = pluginDirectory(current_plugin)
+        self.twGraphFile.clear()
+        self.load_project_structure(startpath, self.twGraphFile)
+
+    def load_project_structure(self, startpath, tree):
+        """
+        Load Project structure tree
+        Thanks to Softmixt : https://stackoverflow.com/questions/5144830/how-to-create-folder-view-in-pyqt-inside-main-window
+        :param startpath:
+        :param tree:
+        :return:
+        """
+
+        for element in os.listdir(startpath):
+            path_info = startpath + "/" + element
+            parent_itm = QTreeWidgetItem(tree, [os.path.basename(element)])
+            if os.path.isdir(path_info):
+                self.load_project_structure(path_info, parent_itm)
+                parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFolder.png'))
+            else:
+                parent_itm.setCheckState(0, Qt.Unchecked)
+                #parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
+
+    def get_selected_leaves(self):
+        """
+        Load Project structure tree
+        Thanks to hollebread : https://stackoverflow.com/questions/26963786/pyqt-get-list-of-all-checked-in-qtreewidget
+        :param startpath:
+        :param tree:
+        :return:
+        """
+        checked_items = []
+        def recurse(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                grand_children = child.childCount()
+                if grand_children > 0:
+                    recurse(child)
+                else:
+                    if child.checkState(0) == Qt.Checked:
+                        checked_items.append(child.text(0))
+
+        recurse(self.twGraphFile.invisibleRootItem())
+        print(checked_items)
+
+
+def compile_ui_qrc():
+    # Compile .ui files
+    # ui_files = glob.glob('*.ui')
+    # for ui in ui_files:
+    #     (name, ext) = os.path.splitext(ui)
+    #     print ("pyuic5.bat -o {}.py {}".format(name, ui))
+    #     subprocess.call(["pyuic5.bat", "-o", "{}.py".format(name), ui])
+
+    # Compile .qrc ressources file
+    rc_files = glob.glob('*.qrc')
+    for rc in rc_files:
+        (name, ext) = os.path.splitext(rc)
+        print("pyrcc5.bat -o {}.py {}".format(name, rc))
+        subprocess.call(["pyrcc5.bat", "-o", "{}.py".format(name), rc])
+
+
+def convert_pro():
+    # Creation of .ts files from .pro file
+    if not glob.glob('*.pro'):
+        # Find the plugin class name
+        plugin_dir = os.getcwd()
+        f = open("{}/__init__.py".format(plugin_dir), "r")
+        init_file = f.read()
+        f.close()
+        class_name = ""
+        for line in init_file.split("\n"):
+            if "return" in line:
+                start = line.find("return") + len("return")
+                end = line.find("(iface)")
+                class_name = line[start + 1:end]
+
+        # Find all .ui files
+        ui_files = glob.glob("{}/**/*.ui".format(plugin_dir), recursive=True)
+        str_pro_ui = ""
+        for ui in ui_files:
+            pro_ui = ui.replace(plugin_dir, " ..")
+            str_pro_ui += pro_ui
+
+        # Find all .py files
+        py_files = glob.glob("{}/**/*.py".format(plugin_dir), recursive=True)
+        str_pro_py = ""
+        list_ignore_py = [" ..\\compile.py", " ..\\resources.py", " ..\\__init__.py"]
+        for py in py_files:
+            pro_py = py.replace(plugin_dir, " ..")
+            str_pro_py += pro_py
+            if "_dialog.py" in pro_py:
+                list_ignore_py.append(pro_py)
+
+        for ignore in list_ignore_py:
+            str_pro_py = str_pro_py.replace(ignore, "")
+
+        if str_pro_ui != "" and str_pro_py != "" and class_name != "":
+            pro_string = "FORMS ={} \nSOURCES ={} \nTRANSLATIONS = {}_fr.ts".format(str_pro_ui, str_pro_py, class_name)
+            f = open("{}/i18n/{}.pro".format(plugin_dir, class_name), "w")
+            f.write(pro_string)
+            f.close()
+        else:
+            print("Error")
+    else:
+        pass
+
+    pro_files = glob.glob('i18n/*.pro')
+    for pro in pro_files:
+        print("pylupdate5.bat {}".format(pro))
+        subprocess.call(["pylupdate5.bat"])
+        subprocess.call(["pylupdate5.bat", "{}".format(pro)])
+
+
+def convert_ts():
+    # If translation is done, create .qm files from the .ts files
+    pro_files = glob.glob('i18n/*.pro')
+    ts_files = glob.glob('i18n/*.ts')
+    pro_mtime = os.path.getmtime(pro_files[0])
+    ts_mtime = os.path.getmtime(ts_files[0])
+    print(ts_mtime - pro_mtime)
+    print(datetime.datetime.fromtimestamp(pro_mtime))
+
+    qm_files = glob.glob('i18n/*.ts')
+    for qm in qm_files:
+        print("lrelease {}".format(qm))
+        subprocess.call(["lrelease", "{}".format(qm)])
