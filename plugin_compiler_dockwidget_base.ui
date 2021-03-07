@@ -6,27 +6,175 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>232</width>
-    <height>141</height>
+    <width>415</width>
+    <height>649</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Plugin Compiler</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
      <widget class="QLabel" name="label">
       <property name="text">
-       <string>Replace this QLabel
-with the desired
-plugin content.</string>
+       <string>Choix du plugin :</string>
       </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="cmbPluginList"/>
+    </item>
+    <item>
+     <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+      <property name="title">
+       <string>Choix des opérations graphiques :</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QCheckBox" name="ckbQrc">
+           <property name="text">
+            <string>.qrc</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="ckbUi">
+           <property name="text">
+            <string>.ui (vérifier comment paramétré .py</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Liste des fichiers :</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTreeWidget" name="twGraphFile">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <attribute name="headerCascadingSectionResizes">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string notr="true">1</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>PushButton</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QgsCollapsibleGroupBox" name="mGroupBox_2">
+      <property name="title">
+       <string>Choix des opérations de traduction :</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Vous n'avez pas Qt Linguist d'installé</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QCheckBox" name="ckbPro">
+           <property name="text">
+            <string>.pro</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="ckbTs">
+           <property name="text">
+            <string>.ts si présence de .pro</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="ckbQm">
+         <property name="text">
+          <string>.qm si présence de .ts</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Choix des langues :</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCheckableComboBox" name="mCmbLanguage">
+         <property name="separator">
+          <string>,</string>
+         </property>
+         <property name="defaultText">
+          <string/>
+         </property>
+         <property name="checkedItems">
+          <stringlist/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Liste des fichiers :</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_7">
+         <property name="text">
+          <string>CheckBox</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsCheckableComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgscheckablecombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
