@@ -235,6 +235,16 @@ class PluginCompiler:
             self.dockwidget.show()
 
             self.cmbPluginList = self.dockwidget.cmbPluginList
+            self.twGraphFile = self.dockwidget.twGraphFile
+            self.ckbQrc = self.dockwidget.ckbQrc
+            self.ckbUi = self.dockwidget.ckbUi
+
+            pushButton = self.dockwidget.pushButton
+            pushButton.clicked.connect(self.get_selected_leaves)
+
+            self.ckbQrc.stateChanged.connect(self.current_plugin)
+            self.ckbUi.stateChanged.connect(self.current_plugin)
+
             plugins_list = sorted(plugins.keys(), key=str.casefold)
             for plugin in plugins_list:
                 try:
@@ -242,10 +252,6 @@ class PluginCompiler:
                 except KeyError:
                     icon = QIcon()
                 self.cmbPluginList.addItem(icon, plugin)
-
-            pushButton = self.dockwidget.pushButton
-            pushButton.clicked.connect(self.get_selected_leaves)
-            self.twGraphFile = self.dockwidget.twGraphFile
 
             self.cmbPluginList.currentTextChanged.connect(self.current_plugin)
             self.current_plugin()
@@ -264,16 +270,61 @@ class PluginCompiler:
         :param tree:
         :return:
         """
+        list_ignore = ["__pycache__"]
 
         for element in os.listdir(startpath):
-            path_info = startpath + "/" + element
-            parent_itm = QTreeWidgetItem(tree, [os.path.basename(element)])
-            if os.path.isdir(path_info):
-                self.load_project_structure(path_info, parent_itm)
-                parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFolder.png'))
+            if element.startswith("."):
+                list_ignore.append(element)
+
+            if element in list_ignore:
+                pass
             else:
-                parent_itm.setCheckState(0, Qt.Unchecked)
-                #parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
+                path_info = startpath + "/" + element
+
+                if os.path.isdir(path_info):
+                    if self.ckbQrc.isChecked():
+                        text_qrc = glob.glob(path_info + "/**/*.qrc", recursive=True)
+                        if len(text_qrc) > 0:
+                            self.is_folder(tree, [os.path.basename(element)], path_info)
+                        else:
+                            pass
+
+                    if self.ckbUi.isChecked():
+                        text_ui = glob.glob(path_info + "/**/*.ui", recursive=True)
+                        if len(text_ui) > 0:
+                            self.is_folder(tree, [os.path.basename(element)], path_info)
+                        else:
+                            pass
+
+                    if self.ckbUi.isChecked() is False and self.ckbQrc.isChecked() is False:
+                        self.is_folder(tree, [os.path.basename(element)], path_info)
+
+                else:
+                    value = os.path.basename(element)
+                    if self.ckbQrc.isChecked():
+                        if value.endswith(".qrc"):
+                            self.is_file(tree, [value])
+                        else:
+                            pass
+
+                    if self.ckbUi.isChecked():
+                        if value.endswith(".ui"):
+                            self.is_file(tree, [value])
+                        else:
+                            pass
+
+                    if self.ckbUi.isChecked() is False and self.ckbQrc.isChecked() is False:
+                        self.is_file(tree, [value])
+
+    def is_folder(self, tree, tree_element, path_info):
+        parent_itm = QTreeWidgetItem(tree, tree_element)
+        self.load_project_structure(path_info, parent_itm)
+        parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFolder.png'))
+
+    def is_file(self, tree, tree_element):
+        parent_itm = QTreeWidgetItem(tree, tree_element)
+        parent_itm.setCheckState(0, Qt.Unchecked)
+        # parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
 
     def get_selected_leaves(self):
         """
