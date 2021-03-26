@@ -236,14 +236,21 @@ class PluginCompiler:
 
             self.cmbPluginList = self.dockwidget.cmbPluginList
             self.twGraphFile = self.dockwidget.twGraphFile
+            self.twTranslateFile = self.dockwidget.twTranslateFile
             self.ckbQrc = self.dockwidget.ckbQrc
             self.ckbUi = self.dockwidget.ckbUi
+            self.ckbPro = self.dockwidget.ckbPro
+            self.ckbQm = self.dockwidget.ckbQm
+            self.ckbTs = self.dockwidget.ckbTs
 
-            pushButton = self.dockwidget.pushButton
-            pushButton.clicked.connect(self.get_selected_leaves)
+            process = self.dockwidget.btnExec
+            process.clicked.connect(self.get_selected_leaves)
 
             self.ckbQrc.stateChanged.connect(self.current_plugin)
             self.ckbUi.stateChanged.connect(self.current_plugin)
+            self.ckbPro.stateChanged.connect(self.current_plugin)
+            self.ckbQm.stateChanged.connect(self.current_plugin)
+            self.ckbTs.stateChanged.connect(self.current_plugin)
 
             plugins_list = sorted(plugins.keys(), key=str.casefold)
             for plugin in plugins_list:
@@ -257,84 +264,135 @@ class PluginCompiler:
             self.current_plugin()
 
     def current_plugin(self):
+        """
+        Prepare the dockwidget for the select plugin
+        """
+
         current_plugin = self.cmbPluginList.currentText()
         startpath = pluginDirectory(current_plugin)
-        self.twGraphFile.clear()
-        self.load_project_structure(startpath, self.twGraphFile)
 
-    def load_project_structure(self, startpath, tree):
+        self.twGraphFile.clear()
+        self.twTranslateFile.clear()
+
+        check_graph = {".qrc": self.ckbQrc.isChecked(), ".ui": self.ckbUi.isChecked()}
+        self.load_project_structure(startpath, self.twGraphFile, check_graph)
+
+        check_trad = {".pro": self.ckbPro.isChecked(), ".qm": self.ckbQm.isChecked(), ".ts": self.ckbTs.isChecked()}
+        self.load_project_structure(startpath, self.twTranslateFile, check_trad)
+
+    def load_project_structure(self, startpath, tree, check_file):
         """
-        Load Project structure tree
-        Thanks to Softmixt : https://stackoverflow.com/questions/5144830/how-to-create-folder-view-in-pyqt-inside-main-window
-        :param startpath:
-        :param tree:
-        :return:
+        Load Project tree structure in TreeWidget
+        Based on solution of Softmixt : https://stackoverflow.com/questions/5144830/how-to-create-folder-view-in-pyqt-inside-main-window
+
+        :param startpath: Path of the plugin
+        :type startpath: str
+
+        :param tree: QTreeWidget element where to display the folder and file architecture
+        :type tree: QTreeWidget
+
+        :param check_file: Dict of extension user choose to see
+        :type check_file: dict
         """
+
+        # List of ignore file or folder to make the tree
         list_ignore = ["__pycache__"]
 
+        # Process all file and folder of startpath
         for element in os.listdir(startpath):
+
+            # Add element to the list_ignore - exemple folder .git or file .gitignore
             if element.startswith("."):
                 list_ignore.append(element)
-
             if element in list_ignore:
                 pass
+
             else:
+                # Make the system path
                 path_info = startpath + "/" + element
 
+                # Avoid add folder in tree if it already exist
+                already_pass = []
+
+                # If current element is detected as folder
                 if os.path.isdir(path_info):
-                    if self.ckbQrc.isChecked():
-                        text_qrc = glob.glob(path_info + "/**/*.qrc", recursive=True)
-                        if len(text_qrc) > 0:
-                            self.is_folder(tree, [os.path.basename(element)], path_info)
-                        else:
-                            pass
+                    # If checkbox of file extension is check (shape = True) we display folder if it's extension format
+                    for extension, shape in check_file.items():
+                        if shape:
+                            text = glob.glob(path_info + "/**/*{}".format(extension), recursive=True)
+                            if len(text) > 0 and path_info not in already_pass:
+                                already_pass.append(path_info)
+                                # Call is_folder function
+                                self.is_folder(tree, [os.path.basename(element)], path_info, check_file)
 
-                    if self.ckbUi.isChecked():
-                        text_ui = glob.glob(path_info + "/**/*.ui", recursive=True)
-                        if len(text_ui) > 0:
-                            self.is_folder(tree, [os.path.basename(element)], path_info)
-                        else:
-                            pass
-
-                    if self.ckbUi.isChecked() is False and self.ckbQrc.isChecked() is False:
-                        self.is_folder(tree, [os.path.basename(element)], path_info)
+                    # If no checkbox are check then we display all folder
+                    if not any(check_file.values()):
+                        # Call is_folder function
+                        self.is_folder(tree, [os.path.basename(element)], path_info, check_file)
 
                 else:
                     value = os.path.basename(element)
-                    if self.ckbQrc.isChecked():
-                        if value.endswith(".qrc"):
-                            self.is_file(tree, [value])
-                        else:
-                            pass
+                    # If checkbox of file extension is check (shape = True) we display file if it's extension format
+                    for extension, shape in check_file.items():
+                        if shape:
+                            if value.endswith(extension):
+                                # Call is_file function
+                                self.is_file(tree, [value])
 
-                    if self.ckbUi.isChecked():
-                        if value.endswith(".ui"):
-                            self.is_file(tree, [value])
-                        else:
-                            pass
-
-                    if self.ckbUi.isChecked() is False and self.ckbQrc.isChecked() is False:
+                    # If no checkbox are check then we display all file
+                    if not any(check_file.values()):
+                        # Call is_file function
                         self.is_file(tree, [value])
 
-    def is_folder(self, tree, tree_element, path_info):
+    def is_folder(self, tree, tree_element, path_info, check_file):
+        """
+        Add folder to the tree structure in QTreeWidget
+
+        :param tree: QTreeWidget element where to display the folder and file architecture
+        :type tree: QTreeWidget
+
+        :param tree_element: Current element in the os.listdir(startpath)
+        :type tree_element: list
+
+        :param path_info: Path of the current element in the os.listdir(startpath)
+        :type path_info: str
+
+        :param check_file: Dict of extension user choose to see
+        :type check_file: dict
+        """
+
         parent_itm = QTreeWidgetItem(tree, tree_element)
-        self.load_project_structure(path_info, parent_itm)
+        self.load_project_structure(path_info, parent_itm, check_file)
         parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFolder.png'))
 
     def is_file(self, tree, tree_element):
+        """
+        Add file to the tree structure in QTreeWidget
+
+        :param tree: QTreeWidget element where to display the folder and file architecture
+        :type tree: QTreeWidget
+
+        :param tree_element: Current element in the os.listdir(startpath)
+        :type tree_element: list
+        """
+
         parent_itm = QTreeWidgetItem(tree, tree_element)
         parent_itm.setCheckState(0, Qt.Unchecked)
         # parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
 
     def get_selected_leaves(self):
         """
-        Load Project structure tree
-        Thanks to hollebread : https://stackoverflow.com/questions/26963786/pyqt-get-list-of-all-checked-in-qtreewidget
+        Get the list of selected files in the QTreeWidget
+        Based on solution of hollebread : https://stackoverflow.com/questions/26963786/pyqt-get-list-of-all-checked-in-qtreewidget
+
         :param startpath:
-        :param tree:
+        :type startpath:
+
         :return:
         """
+
         checked_items = []
+
         def recurse(parent_item):
             for i in range(parent_item.childCount()):
                 child = parent_item.child(i)
