@@ -64,6 +64,9 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <attribute name="headerVisible">
+          <bool>false</bool>
+         </attribute>
          <attribute name="headerCascadingSectionResizes">
           <bool>false</bool>
          </attribute>
@@ -72,13 +75,6 @@
            <string notr="true">1</string>
           </property>
          </column>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton">
-         <property name="text">
-          <string>PushButton</string>
-         </property>
         </widget>
        </item>
       </layout>
@@ -150,13 +146,35 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox_7">
-         <property name="text">
-          <string>CheckBox</string>
-         </property>
+        <widget class="QTreeWidget" name="twTranslateFile">
+         <attribute name="headerVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string notr="true">1</string>
+          </property>
+         </column>
         </widget>
        </item>
       </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QPushButton" name="btnExec">
+       <property name="text">
+        <string>Exécuter</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="btnHelp">
+       <property name="text">
+        <string>Aide</string>
+       </property>
+      </widget>
      </widget>
     </item>
    </layout>
