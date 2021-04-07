@@ -241,13 +241,7 @@ class PluginCompiler:
             self.ckbPro = self.dockwidget.ckbPro
             self.ckbQm = self.dockwidget.ckbQm
             self.ckbTs = self.dockwidget.ckbTs
-
-            dict_trad = {"allemand": "de"
-                         , "anglais": "en"
-                         , "espagnol": "es"
-                         , "français": "fr"
-                         , "italien": "it"
-                         }
+            self.mCmbLanguage = self.dockwidget.mCmbLanguage
 
             process = self.dockwidget.btnExec
             process.clicked.connect(self.get_selected_leaves)
@@ -257,6 +251,15 @@ class PluginCompiler:
             self.ckbPro.stateChanged.connect(self.current_plugin)
             self.ckbQm.stateChanged.connect(self.current_plugin)
             self.ckbTs.stateChanged.connect(self.current_plugin)
+
+            dict_trad = {"Allemand": "de"
+                         , "Anglais": "en"
+                         , "Espagnol": "es"
+                         , "Français": "fr"
+                         , "Italien": "it"
+                         }
+            for langue, lg in dict_trad.items():
+                self.mCmbLanguage.addItemWithCheckState(langue, False, lg)
 
             plugins_list = sorted(plugins.keys(), key=str.casefold)
             for plugin in plugins_list:
@@ -300,6 +303,7 @@ class PluginCompiler:
         :param check_format: Dict of extension user choose to see
         :type check_format: dict
         """
+        # TODO: Les cases à cocher ne s'affichent que si l'opération est sélectionnée
 
         # List of ignore file or folder to make the tree
         list_ignore = ["__pycache__"]
@@ -416,6 +420,8 @@ class PluginCompiler:
         recurse(self.twGraphFile.invisibleRootItem())
 
         print(checked_path)
+        print(self.mCmbLanguage.checkedItemsData())
+        print(self.mCmbLanguage.checkedItems())
 
 
 def compile_ui_qrc():
