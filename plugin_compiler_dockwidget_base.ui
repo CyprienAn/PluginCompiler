@@ -28,7 +28,7 @@
     <item>
      <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
       <property name="title">
-       <string>Filtre des fichiers :</string>
+       <string>Choix des opérations :</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
@@ -49,11 +49,18 @@
             <item>
              <widget class="QCheckBox" name="ckbUi">
               <property name="text">
-               <string>.ui (vérifier comment paramétré .py</string>
+               <string>.ui (attention .py)</string>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="ckbResources">
+            <property name="text">
+             <string>Add resources to &quot;resources.qrc&quot;</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -76,7 +83,7 @@
             <item>
              <widget class="QCheckBox" name="ckbTs">
               <property name="text">
-               <string>.ts si présence de .pro</string>
+               <string>.ts (si présence de .pro)</string>
               </property>
              </widget>
             </item>
@@ -89,43 +96,31 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Choix des langues :</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QgsCheckableComboBox" name="mCmbLanguage">
+            <property name="separator">
+             <string>,</string>
+            </property>
+            <property name="defaultText">
+             <string>Choose language(s)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Vous n'avez pas Qt Linguist d'installé</string>
+            </property>
+           </widget>
+          </item>
          </layout>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QgsCollapsibleGroupBox" name="mGroupBox_2">
-      <property name="title">
-       <string>Choix des opérations de traduction :</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Vous n'avez pas Qt Linguist d'installé</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Choix des langues :</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QgsCheckableComboBox" name="mCmbLanguage">
-         <property name="separator">
-          <string>,</string>
-         </property>
-         <property name="defaultText">
-          <string/>
-         </property>
-         <property name="checkedItems">
-          <stringlist/>
-         </property>
         </widget>
        </item>
       </layout>
@@ -135,6 +130,16 @@
      <widget class="QLabel" name="label_3">
       <property name="text">
        <string>Liste des fichiers :</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="ckbFilter">
+      <property name="text">
+       <string>Filtrer par opérations</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
