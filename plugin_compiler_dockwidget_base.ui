@@ -58,7 +58,7 @@
           <item>
            <widget class="QCheckBox" name="ckbResources">
             <property name="text">
-             <string>Add resources to &quot;resources.qrc&quot;</string>
+             <string>Add .png/.jpg to &quot;resources.qrc&quot;</string>
             </property>
            </widget>
           </item>
