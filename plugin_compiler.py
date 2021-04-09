@@ -238,9 +238,11 @@ class PluginCompiler:
             self.twGraphFile = self.dockwidget.twGraphFile
             self.ckbQrc = self.dockwidget.ckbQrc
             self.ckbUi = self.dockwidget.ckbUi
+            self.ckbResources = self.dockwidget.ckbResources
             self.ckbPro = self.dockwidget.ckbPro
             self.ckbQm = self.dockwidget.ckbQm
             self.ckbTs = self.dockwidget.ckbTs
+            self.ckbFilter = self.dockwidget.ckbFilter
             self.mCmbLanguage = self.dockwidget.mCmbLanguage
 
             process = self.dockwidget.btnExec
@@ -248,9 +250,11 @@ class PluginCompiler:
 
             self.ckbQrc.stateChanged.connect(self.current_plugin)
             self.ckbUi.stateChanged.connect(self.current_plugin)
+            self.ckbResources.stateChanged.connect(self.current_plugin)
             self.ckbPro.stateChanged.connect(self.current_plugin)
             self.ckbQm.stateChanged.connect(self.current_plugin)
             self.ckbTs.stateChanged.connect(self.current_plugin)
+            self.ckbFilter.stateChanged.connect(self.current_plugin)
 
             dict_trad = {"Allemand": "de"
                          , "Anglais": "en"
@@ -283,13 +287,16 @@ class PluginCompiler:
 
         check_format = {".qrc": self.ckbQrc.isChecked()
                         , ".ui": self.ckbUi.isChecked()
+                        , ".png": self.ckbResources.isChecked()
+                        , ".jpg": self.ckbResources.isChecked()
                         , ".pro": self.ckbPro.isChecked()
                         , ".qm": self.ckbQm.isChecked()
                         , ".ts": self.ckbTs.isChecked()
                         }
-        self.load_project_structure(startpath, self.twGraphFile, check_format)
+        sorting = self.ckbFilter.isChecked()
+        self.load_project_structure(startpath, self.twGraphFile, check_format, sorting)
 
-    def load_project_structure(self, startpath, tree, check_format):
+    def load_project_structure(self, startpath, tree, check_format, sorting):
         """
         Load Project tree structure in TreeWidget
         Based on solution of Softmixt : https://stackoverflow.com/questions/5144830/how-to-create-folder-view-in-pyqt-inside-main-window
@@ -303,7 +310,6 @@ class PluginCompiler:
         :param check_format: Dict of extension user choose to see
         :type check_format: dict
         """
-        # TODO: Les cases à cocher ne s'affichent que si l'opération est sélectionnée
 
         # List of ignore file or folder to make the tree
         list_ignore = ["__pycache__"]
@@ -327,35 +333,37 @@ class PluginCompiler:
                 # If current element is detected as folder
                 if os.path.isdir(path_info):
                     # If checkbox of file extension is check (shape = True) we display folder if it's extension format
-                    for extension, shape in check_format.items():
-                        if shape:
-                            text = glob.glob(path_info + "/**/*{}".format(extension), recursive=True)
-                            if len(text) > 0 and path_info not in already_pass:
-                                already_pass.append(path_info)
-                                # Call is_folder function
-                                self.is_folder(tree, [os.path.basename(element)], path_info, check_format)
+                    if sorting:
+                        for extension, shape in check_format.items():
+                            if shape:
+                                text = glob.glob(path_info + "/**/*{}".format(extension), recursive=True)
+                                if len(text) > 0 and path_info not in already_pass:
+                                    already_pass.append(path_info)
+                                    # Call is_folder function
+                                    self.is_folder(tree, [os.path.basename(element)], path_info, check_format, sorting)
 
                     # If no checkbox are check then we display all folder
-                    if not any(check_format.values()):
+                    if not any(check_format.values()) or sorting is False:
                         # Call is_folder function
-                        self.is_folder(tree, [os.path.basename(element)], path_info, check_format)
+                        self.is_folder(tree, [os.path.basename(element)], path_info, check_format, sorting)
 
                 else:
                     value = os.path.basename(element)
 
                     # If checkbox of file extension is check (shape = True) we display file if it's extension format
-                    for extension, shape in check_format.items():
-                        if shape:
-                            if value.endswith(extension):
-                                # Call is_file function
-                                self.is_file(tree, [value, path_info], check_format)
+                    if sorting:
+                        for extension, shape in check_format.items():
+                            if shape:
+                                if value.endswith(extension):
+                                    # Call is_file function
+                                    self.is_file(tree, [value, path_info], check_format)
 
                     # If no checkbox are check then we display all file
-                    if not any(check_format.values()):
+                    if not any(check_format.values()) or sorting is False:
                         # Call is_file function
                         self.is_file(tree, [value, path_info], check_format)
 
-    def is_folder(self, tree, tree_element, path_info, check_format):
+    def is_folder(self, tree, tree_element, path_info, check_format, sorting):
         """
         Add folder to the tree structure in QTreeWidget
 
@@ -373,7 +381,7 @@ class PluginCompiler:
         """
 
         parent_itm = QTreeWidgetItem(tree, tree_element)
-        self.load_project_structure(path_info, parent_itm, check_format)
+        self.load_project_structure(path_info, parent_itm, check_format, sorting)
         parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFolder.png'))
 
     def is_file(self, tree, tree_element, check_format):
@@ -389,22 +397,37 @@ class PluginCompiler:
         :param check_format: Dict of extension user choose to see
         :type check_format: dict
         """
-        list_extension = list(check_format.keys())
-
-        if ".{}".format(tree_element[0].rpartition('.')[-1]) in list_extension:
+        extension = ".{}".format(tree_element[0].rpartition('.')[-1])
+        if extension in check_format.keys() and check_format[extension]:
             parent_itm = QTreeWidgetItem(tree, tree_element)
             parent_itm.setCheckState(0, Qt.Unchecked)
             # parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
         else:
             parent_itm = QTreeWidgetItem(tree, tree_element)
             # parent_itm.setIcon(0, QIcon(':/plugins/plugin_compiler/icons/mIconFile.png'))
+
     def get_selected_leaves(self):
         """
         Get the list of selected files in the QTreeWidget
         Based on solution of hollebread : https://stackoverflow.com/questions/26963786/pyqt-get-list-of-all-checked-in-qtreewidget
         """
 
-        checked_items = []
+        process_qrc = []
+        process_ui = []
+        process_resources = []
+        process_pro = []
+        process_qm = []
+        process_ts = []
+
+        dict_process = {".qrc": process_qrc
+                        , ".ui": process_ui
+                        , ".png": process_resources
+                        , ".jpg": process_resources
+                        , ".pro": process_pro
+                        , ".qm": process_qm
+                        , ".ts": process_ts
+                        }
+
         checked_path = []
 
         def recurse(parent_item):
@@ -419,19 +442,23 @@ class PluginCompiler:
 
         recurse(self.twGraphFile.invisibleRootItem())
 
-        print(checked_path)
-        print(self.mCmbLanguage.checkedItemsData())
-        print(self.mCmbLanguage.checkedItems())
+        for elem in checked_path:
+            extension = ".{}".format(elem.rpartition('.')[-1])
+            if extension in dict_process.keys():
+                dict_process[extension].append(elem)
+
+        print("all :", checked_path)
+        print("qrc :", process_qrc)
+        print("ui :", process_ui)
+        print("resources :", process_resources)
+        print("pro :", process_pro)
+        print("qm :", process_qm)
+        print("ts :", process_ts)
+        print("langdata :", self.mCmbLanguage.checkedItemsData())
+        print("lang :", self.mCmbLanguage.checkedItems())
 
 
-def compile_ui_qrc():
-    # Compile .ui files
-    # ui_files = glob.glob('*.ui')
-    # for ui in ui_files:
-    #     (name, ext) = os.path.splitext(ui)
-    #     print ("pyuic5.bat -o {}.py {}".format(name, ui))
-    #     subprocess.call(["pyuic5.bat", "-o", "{}.py".format(name), ui])
-
+def compile_qrc():
     # Compile .qrc ressources file
     rc_files = glob.glob('*.qrc')
     for rc in rc_files:
@@ -440,7 +467,16 @@ def compile_ui_qrc():
         subprocess.call(["pyrcc5.bat", "-o", "{}.py".format(name), rc])
 
 
-def convert_pro():
+def compile_ui():
+    # Compile .ui files
+    ui_files = glob.glob('*.ui')
+    for ui in ui_files:
+        (name, ext) = os.path.splitext(ui)
+        print("pyuic5.bat -o {}.py {}".format(name, ui))
+        subprocess.call(["pyuic5.bat", "-o", "{}.py".format(name), ui])
+
+
+def create_pro():
     # Creation of .ts files from .pro file
     if not glob.glob('*.pro'):
         # Find the plugin class name
@@ -485,6 +521,8 @@ def convert_pro():
     else:
         pass
 
+
+def compile_ts():
     pro_files = glob.glob('i18n/*.pro')
     for pro in pro_files:
         print("pylupdate5.bat {}".format(pro))
@@ -492,7 +530,7 @@ def convert_pro():
         subprocess.call(["pylupdate5.bat", "{}".format(pro)])
 
 
-def convert_ts():
+def compile_qm():
     # If translation is done, create .qm files from the .ts files
     pro_files = glob.glob('i18n/*.pro')
     ts_files = glob.glob('i18n/*.ts')
