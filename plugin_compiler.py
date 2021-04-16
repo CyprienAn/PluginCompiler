@@ -37,6 +37,7 @@ import subprocess
 import datetime
 from qgis.utils import plugins, pluginDirectory
 from pyplugin_installer import installer as plugin_installer
+from qgis.core import Qgis
 
 
 class PluginCompiler:
@@ -245,6 +246,8 @@ class PluginCompiler:
             self.ckbFilter = self.dockwidget.ckbFilter
             self.mCmbLanguage = self.dockwidget.mCmbLanguage
 
+            self.lblLang = self.dockwidget.lblLang
+
             process = self.dockwidget.btnExec
             process.clicked.connect(self.get_selected_leaves)
 
@@ -280,6 +283,13 @@ class PluginCompiler:
         """
         Prepare the dockwidget for the select plugin
         """
+        if self.ckbPro.isChecked():
+            self.lblLang.show()
+            self.mCmbLanguage.show()
+        else:
+            self.lblLang.hide()
+            self.mCmbLanguage.hide()
+
         current_plugin = self.cmbPluginList.currentText()
         startpath = pluginDirectory(current_plugin)
 
@@ -418,6 +428,8 @@ class PluginCompiler:
         process_pro = []
         process_qm = []
         process_ts = []
+        langdata = self.mCmbLanguage.checkedItemsData()
+        lang = self.mCmbLanguage.checkedItems()
 
         dict_process = {".qrc": process_qrc
                         , ".ui": process_ui
@@ -428,8 +440,6 @@ class PluginCompiler:
                         , ".ts": process_ts
                         }
 
-        checked_path = []
-
         def recurse(parent_item):
             for i in range(parent_item.childCount()):
                 child = parent_item.child(i)
@@ -438,27 +448,78 @@ class PluginCompiler:
                     recurse(child)
                 else:
                     if child.checkState(0) == Qt.Checked:
-                        checked_path.append(child.text(1))
+                        extension = ".{}".format(child.text(1).rpartition('.')[-1])
+                        if extension in dict_process.keys():
+                            dict_process[extension].append(child.text(1))
 
         recurse(self.twGraphFile.invisibleRootItem())
 
-        for elem in checked_path:
-            extension = ".{}".format(elem.rpartition('.')[-1])
-            if extension in dict_process.keys():
-                dict_process[extension].append(elem)
+        list_function = [[process_qrc
+                         , self.ckbQrc.isChecked()
+                         , compile_qrc
+                         , "qrc : Vous n'avez pas sélectionné de fichier"]
 
-        print("all :", checked_path)
-        print("qrc :", process_qrc)
-        print("ui :", process_ui)
-        print("resources :", process_resources)
-        print("pro :", process_pro)
-        print("qm :", process_qm)
-        print("ts :", process_ts)
-        print("langdata :", self.mCmbLanguage.checkedItemsData())
-        print("lang :", self.mCmbLanguage.checkedItems())
+                         , [process_ui
+                             , self.ckbUi.isChecked()
+                             , compile_ui
+                             , "ui : Vous n'avez pas sélectionné de fichier"]
+
+                         , [process_resources
+                             , self.ckbResources.isChecked()
+                             , add_resource
+                             , "resources : Vous n'avez pas sélectionné de fichier"]
+
+                         # , [process_pro
+                         #     , self.ckbPro.isChecked()
+                         #     , create_pro
+                         #     , "pro : Vous n'avez pas sélectionné de fichier"
+                         #     , langdata
+                         #     , "pro : Pas de langue choisi"]
+
+                         , [process_ts
+                             , self.ckbTs.isChecked()
+                             , compile_ts
+                             , "ts : Vous n'avez pas sélectionné de fichier"]
+
+                         , [process_qm
+                             , self.ckbQm.isChecked()
+                             , compile_qm
+                             , "qm : Vous n'avez pas sélectionné de fichier"]
+                         ]
+
+        process = False
+
+        for val in list_function:
+            if val[1]:
+                process = True
+                if val[0]:
+                    print(val[2])
+                else:
+                    self.iface.messageBar().pushMessage("Warning : ",
+                                                        val[3],
+                                                        level=Qgis.Warning, duration=5)
+
+        if self.ckbPro.isChecked():
+            process = True
+            if process_pro:
+                if langdata:
+                    print("process_pro: ", process_pro, "-", langdata)
+                else:
+                    self.iface.messageBar().pushMessage("Warning : ",
+                                                        "Pas de langue choisi",
+                                                        level=Qgis.Warning, duration=5)
+            else:
+                self.iface.messageBar().pushMessage("Warning : ",
+                                                    "Pas de fichier choisi",
+                                                    level=Qgis.Warning, duration=5)
+
+        if not process:
+            print("Aucune opération")
+
+        self.current_plugin()
 
 
-def compile_qrc():
+def compile_qrc(list_files):
     # Compile .qrc ressources file
     rc_files = glob.glob('*.qrc')
     for rc in rc_files:
@@ -467,7 +528,11 @@ def compile_qrc():
         subprocess.call(["pyrcc5.bat", "-o", "{}.py".format(name), rc])
 
 
-def compile_ui():
+def add_resource(list_files):
+    pass
+
+
+def compile_ui(list_files):
     # Compile .ui files
     ui_files = glob.glob('*.ui')
     for ui in ui_files:
@@ -476,7 +541,7 @@ def compile_ui():
         subprocess.call(["pyuic5.bat", "-o", "{}.py".format(name), ui])
 
 
-def create_pro():
+def create_pro(list_files, language):
     # Creation of .ts files from .pro file
     if not glob.glob('*.pro'):
         # Find the plugin class name
@@ -522,7 +587,7 @@ def create_pro():
         pass
 
 
-def compile_ts():
+def compile_ts(list_files):
     pro_files = glob.glob('i18n/*.pro')
     for pro in pro_files:
         print("pylupdate5.bat {}".format(pro))
@@ -530,7 +595,7 @@ def compile_ts():
         subprocess.call(["pylupdate5.bat", "{}".format(pro)])
 
 
-def compile_qm():
+def compile_qm(list_files):
     # If translation is done, create .qm files from the .ts files
     pro_files = glob.glob('i18n/*.pro')
     ts_files = glob.glob('i18n/*.ts')
